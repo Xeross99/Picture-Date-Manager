@@ -1,6 +1,7 @@
 require 'mini_exiftool'
 require 'mini_magick'
 
+# Dodawanie daty na zdjęcie
 class AddTimeToImage
   def initialize(images_path, done_images_path)
     @images_path = images_path
@@ -42,36 +43,79 @@ class AddTimeToImage
 
       puts "#{index+1} - dodano datę do: #{File.basename(image_path)}"
     end
-    print "\nUkończono dodawanie dat - kliknij enter aby kontynuować."
+    
+    print "\nUkończono dodawanie dat - kliknij enter aby kontynuować..."
     gets.chomp
+    system("clear")
   end
 end
 
+# Sorotowanie zdjęć
 class SortImage
   def initialize(images_path)
     @images_path = images_path
   end
 
   def sort_images
-    # Kod sortujący zdjęcia według określonego kryterium
-    # Możesz dostosować ten kod do swoich potrzeb sortowania
     sorted_images = Dir.glob(File.join(@images_path, '*.{jpg,jpeg,png,heic}')).sort_by { |image_path| File.mtime(image_path) }
 
-    # Zwróć posortowane zdjęcia
     return sorted_images
   end
 end
 
-def show_menu_options
-  puts "+----------------------+"
-  puts "|   Co chcesz zrobić?  |\n"
-  puts "+----------------------+"
-  puts "|1. Dodaj datę do zdjęć|"
-  puts "|   2. Sortuj zdjęcia  |"
-  puts "|                      |"
-  puts "|     0. Wyjście       |"
-  puts "+--------------------- +"
-  print "Opcja: "
+# Zmiana rozszerzenia zdjęcia
+class ChangeImageExtension
+  def initialize(images_path)
+    @images_path = images_path
+  end
+
+  def change_extension(new_extension)
+    image_files = Dir.glob(File.join(@images_path, '*'))
+    puts "Ilość znalezionych zdjęć: #{image_files.length}.\n\n"
+
+    new_folder = File.join(@images_path, new_extension.upcase)
+    FileUtils.mkdir_p(new_folder) unless Dir.exist?(new_folder)
+
+    image_files.each do |file|
+      next unless file.downcase.end_with?('.jpg', '.jpeg', '.png', '.heic')
+
+      image = MiniMagick::Image.open(file)
+      new_file = File.join(new_folder, File.basename(file).gsub(/\.(jpg|jpeg|png|heic)$/i, ".#{new_extension}"))
+      image.write(new_file)
+      puts "Zmieniono rozszerzenie: #{File.basename(file)} -> #{File.basename(new_file)}"
+    end
+
+    print "\nUkończono zmianę rozszerzeń - kliknij enter aby kontynuować..."
+    gets.chomp
+    system("clear")
+  end
+
+  def show_menu
+    puts "+----------------------------------------------------------+"
+    puts "|   Wybierz rozszerzenie, na które chcesz zmienić pliki:   |"
+    puts "+----------------------------------------------------------+"
+    puts "|   1. JPG                                                 |"
+    puts "|   2. JPEG                                                |"
+    puts "|   3. PNG                                                 |"
+    puts "|   4. HEIC                                                |"
+    puts "+----------------------------------------------------------+"
+    print "Wybierz opcję: "
+    choice = gets.chomp.to_i
+    system("clear")
+
+    case choice
+    when 1
+      change_extension('jpg')
+    when 2
+      change_extension('jpeg')
+    when 3
+      change_extension('png')
+    when 4
+      change_extension('heic')
+    else
+      puts "Nieprawidłowy wybór. Spróbuj ponownie."
+    end
+  end
 end
 
 def main
@@ -80,7 +124,16 @@ def main
   done_images_path = '/Users/xeross99/Desktop/images_with_date'
 
   loop do
-    show_menu_options
+    puts "+----------------------------+"
+    puts "|   Co chcesz zrobić?        |"
+    puts "+----------------------------+"
+    puts "|   1. Dodaj datę do zdjęć   |"
+    puts "|   2. Zmiana rozszerzenia   |"
+    puts "|   3. Sortuj zdjęcia        |"
+    puts "|                            |"
+    puts "|   0. Wyjście               |"
+    puts "+----------------------------+"
+    print "Wybierz opcję: "
     choice = gets.chomp.to_s
 
     case choice
@@ -90,9 +143,12 @@ def main
       add_time_to_image.add_date_to_images
     when '2'
       system("clear")
+      change_extension = ChangeImageExtension.new(images_path)
+      change_extension = change_extension.show_menu
+    when '3'
+      system("clear")
       sort_image = SortImage.new(images_path)
       sorted_images = sort_image.sort_images
-      puts "Posortowane zdjęcia: #{sorted_images}"
     when '0'
       system("clear")
       puts "Do widzenia!"
